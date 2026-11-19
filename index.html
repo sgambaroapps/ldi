@@ -39,11 +39,13 @@ button,textarea{font:inherit}
 /* ---- barra in alto (come il sito di Nautilus DiveKit) ---- */
 .top{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
   max-width:880px; margin:0 auto; padding:14px 20px}
-.brand{display:flex; align-items:center; gap:11px; min-width:0}
+/* il nome può andare su due righe: così in tutte le lingue (anche spagnolo e francese, più lunghi)
+   le lingue restano a destra; sul telefono vanno sotto, come sul sito di DiveKit */
+.brand{display:flex; align-items:center; gap:11px; min-width:0; flex:1 1 240px}
 .brand img{width:40px; height:40px; border-radius:10px; flex:none}
 .brand b{display:block; font-size:1.02rem; letter-spacing:.2px; line-height:1.2}
 .brand span{display:block; font-size:.8rem; color:var(--tenue)}
-nav#lingue{display:flex; flex-wrap:wrap; gap:6px}
+nav#lingue{display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end; flex:0 1 auto}
 nav#lingue button{
   font-size:.82rem; padding:5px 12px; border-radius:999px; cursor:pointer;
   border:1px solid var(--bordo); color:var(--tenue); background:transparent;
