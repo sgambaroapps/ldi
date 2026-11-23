@@ -1,10 +1,10 @@
-// I dati contenuti in un QR LDI (specifica LDI v1, paragrafo 4).
+// I dati contenuti in un QR LDI (specifica LDI v2, paragrafo 4; la v1 resta leggibile, vedi 4.9).
 // Ogni classe sa trasformarsi in JSON (toJson) e ricostruirsi dal JSON (fromJson);
 // la funzione [controllaDocumento] dice se i dati rispettano lo standard.
 import 'testi.dart';
 
-/// Versione dei dati gestita da questa libreria.
-const int versioneDatiLdi = 1;
+/// Versione dei dati gestita da questa libreria: scrive la 2, legge la 1 e la 2.
+const int versioneDatiLdi = 2;
 
 /// Lunghezza massima delle note dentro il QR (in caratteri).
 const int maxCaratteriNote = 100;
@@ -23,10 +23,17 @@ const Map<String, String> autorespiratoriLdi = {
 const Map<String, String> motiviLdi = {
   'ric': 'Ricreativa',
   'cor': 'Corso',
+  'tec': 'Tecnica', // solo v2
   'soc': 'Attività sociale',
   'pro': 'Prova / battesimo',
   'acc': 'Accompagnamento',
   'alt': 'Altro',
+};
+
+/// Guidata o organizzata (specifica 4.5, campo "mod", solo v2).
+const Map<String, String> modalitaLdi = {
+  'gui': 'Guidata',
+  'org': 'Organizzata',
 };
 
 final RegExp _miscela = RegExp(r'^(AIR|O2|EAN(\d{2})|TX(\d{1,2})/(\d{1,2}))$');
@@ -135,6 +142,21 @@ class LdiGuida {
       );
 }
 
+/// Una persona con il telefono: responsabile dell'uscita ("ru") e del primo soccorso ("ps") nel riepilogo v2.
+class LdiContatto {
+  final String nome;
+  final String? telefono;
+
+  const LdiContatto({required this.nome, this.telefono});
+
+  Map<String, Object?> toJson() => _senzaVuoti({'n': nome, 'tel': telefono});
+
+  factory LdiContatto.fromJson(Map<String, Object?> j) =>
+      LdiContatto(nome: _leggiTesto(j['n']) ?? '', telefono: _leggiTesto(j['tel']));
+
+  static LdiContatto? daJson(Object? v) => v is Map ? LdiContatto.fromJson(v.cast<String, Object?>()) : null;
+}
+
 /// Il partecipante a cui è intestato il libretto (specifica 4.5, campo "s").
 class LdiPartecipante {
   final String nome;
@@ -184,6 +206,9 @@ class LdiVoceRiepilogo {
 sealed class LdiDocumento {
   /// 'lib' (libretto individuale) o 'reg' (riepilogo immersione).
   String get tipo;
+
+  /// Versione dei dati (campo "v"): 2 per i documenti nuovi, 1 per quelli emessi prima del 23/11/2026.
+  final int versione;
   final String idImmersione;
   final String emesso;
   final LdiEmittente emittente;
@@ -198,6 +223,7 @@ sealed class LdiDocumento {
   final Map<String, Object?>? estensioni;
 
   const LdiDocumento({
+    this.versione = versioneDatiLdi,
     required this.idImmersione,
     required this.emesso,
     required this.emittente,
@@ -212,7 +238,7 @@ sealed class LdiDocumento {
 
   Map<String, Object?> _comuni() => {
         't': tipo,
-        'v': versioneDatiLdi,
+        'v': versione,
         'imm': idImmersione,
         'em': emesso,
         'c': emittente.toJson(),
@@ -260,6 +286,12 @@ class LdiLibretto extends LdiDocumento {
   final LdiPartecipante partecipante;
   final String motivo;
   final String? corso;
+
+  /// Solo v2: 'gui' guidata o 'org' organizzata (in coppia o terzetto per conto proprio).
+  final String? modalita;
+
+  /// Solo v2: con 'gui' la guida seguita, con 'org' i compagni.
+  final List<String>? compagni;
   final String autorespiratore;
   final String miscela;
   final String? note;
@@ -270,6 +302,7 @@ class LdiLibretto extends LdiDocumento {
   bool get annullato => annullamento != null;
 
   const LdiLibretto({
+    super.versione,
     required this.id,
     required super.idImmersione,
     this.revisione = 1,
@@ -285,6 +318,8 @@ class LdiLibretto extends LdiDocumento {
     required this.partecipante,
     required this.motivo,
     this.corso,
+    this.modalita,
+    this.compagni,
     required this.autorespiratore,
     required this.miscela,
     this.note,
@@ -301,6 +336,8 @@ class LdiLibretto extends LdiDocumento {
         's': partecipante.toJson(),
         'mot': motivo,
         'cor': corso,
+        'mod': modalita,
+        'con': compagni,
         'ar': autorespiratore,
         'mx': miscela,
         'note': note,
@@ -309,6 +346,7 @@ class LdiLibretto extends LdiDocumento {
       });
 
   factory LdiLibretto.fromJson(Map<String, Object?> j) => LdiLibretto(
+        versione: j['v'] is int ? j['v'] as int : 0,
         id: _leggiTesto(j['id']) ?? '',
         idImmersione: _leggiTesto(j['imm']) ?? '',
         revisione: j['rev'] is int ? j['rev'] as int : 0,
@@ -324,6 +362,8 @@ class LdiLibretto extends LdiDocumento {
         partecipante: LdiPartecipante.fromJson(_mappa(j['s'], 's')),
         motivo: _leggiTesto(j['mot']) ?? '',
         corso: _leggiTesto(j['cor']),
+        modalita: _leggiTesto(j['mod']),
+        compagni: j['con'] is List ? [for (final c in j['con'] as List) if (c is String) c] : null,
         autorespiratore: _leggiTesto(j['ar']) ?? '',
         miscela: _leggiTesto(j['mx']) ?? '',
         note: _leggiTesto(j['note']),
@@ -344,7 +384,12 @@ class LdiRiepilogo extends LdiDocumento {
   /// Pagina, es. "1/2", quando i partecipanti sono divisi su più QR.
   final String? pagina;
 
+  /// Solo v2: responsabile dell'uscita (obbligatorio) e del primo soccorso.
+  final LdiContatto? responsabile;
+  final LdiContatto? primoSoccorso;
+
   const LdiRiepilogo({
+    super.versione,
     required super.idImmersione,
     required super.emesso,
     required super.emittente,
@@ -357,6 +402,8 @@ class LdiRiepilogo extends LdiDocumento {
     required this.partecipanti,
     required this.numeroPartecipanti,
     this.pagina,
+    this.responsabile,
+    this.primoSoccorso,
     super.estensioni,
   });
 
@@ -366,10 +413,13 @@ class LdiRiepilogo extends LdiDocumento {
         'p': [for (final p in partecipanti) p.toJson()],
         'np': numeroPartecipanti,
         'pag': pagina,
+        'ru': responsabile?.toJson(),
+        'ps': primoSoccorso?.toJson(),
         'x': estensioni,
       });
 
   factory LdiRiepilogo.fromJson(Map<String, Object?> j) => LdiRiepilogo(
+        versione: j['v'] is int ? j['v'] as int : 0,
         idImmersione: _leggiTesto(j['imm']) ?? '',
         emesso: _leggiTesto(j['em']) ?? '',
         emittente: LdiEmittente.fromJson(_mappa(j['c'], 'c')),
@@ -382,6 +432,8 @@ class LdiRiepilogo extends LdiDocumento {
         partecipanti: [for (final p in _lista(j['p'], 'p')) LdiVoceRiepilogo.fromJson(p)],
         numeroPartecipanti: j['np'] is int ? j['np'] as int : -1,
         pagina: _leggiTesto(j['pag']),
+        responsabile: LdiContatto.daJson(j['ru']),
+        primoSoccorso: LdiContatto.daJson(j['ps']),
         estensioni: j['x'] is Map ? (j['x'] as Map).cast<String, Object?>() : null,
       );
 }
@@ -394,7 +446,7 @@ class LdiControllo {
   bool get valido => errori.isEmpty;
 }
 
-/// Controlla che un documento rispetti la specifica LDI v1.
+/// Controlla che un documento rispetti la specifica LDI (regole della sua versione, 1 o 2).
 /// [adesso] serve ai test; di norma è l'ora attuale.
 LdiControllo controllaDocumento(LdiDocumento d, {DateTime? adesso}) {
   final err = <String>[];
@@ -403,6 +455,8 @@ LdiControllo controllaDocumento(LdiDocumento d, {DateTime? adesso}) {
     if (!ok) err.add(messaggio);
   }
 
+  serve(d.versione == 1 || d.versione == 2, 'Versione dei dati non valida');
+  final v1 = d.versione == 1;
   serve(formatoIdLdi.hasMatch(d.idImmersione), 'Codice dell\'immersione non valido');
   final em = leggiDataOra(d.emesso);
   final ini = leggiDataOra(d.inizio);
@@ -426,10 +480,13 @@ LdiControllo controllaDocumento(LdiDocumento d, {DateTime? adesso}) {
     serve(lat != null && lon != null && lat.abs() <= 90 && lon.abs() <= 180, 'Coordinate del luogo non valide');
   }
 
-  serve(d.guide.isNotEmpty, 'Serve almeno una guida o un istruttore');
   serve(d.guide.every((g) => g.nome.trim().isNotEmpty), 'Una guida o un istruttore non ha il nome');
-  final responsabili = d.guide.where((g) => g.responsabile).length;
-  serve(responsabili == 1, 'Deve esserci un solo responsabile dell\'immersione');
+  if (v1) {
+    // v1: almeno una guida e un solo responsabile dentro "g"
+    serve(d.guide.isNotEmpty, 'Serve almeno una guida o un istruttore');
+    final responsabili = d.guide.where((g) => g.responsabile).length;
+    serve(responsabili == 1, 'Deve esserci un solo responsabile dell\'immersione');
+  }
 
   serve(d.profonditaPianificata > 0, 'Profondità pianificata mancante');
   serve(d.profonditaRaggiunta >= 0, 'Profondità raggiunta mancante');
@@ -458,7 +515,15 @@ LdiControllo controllaDocumento(LdiDocumento d, {DateTime? adesso}) {
         serve(l.annullamento!.runes.length <= maxCaratteriNote,
             'Motivo dell\'annullamento troppo lungo: massimo $maxCaratteriNote caratteri');
       }
-      serve(motiviLdi.containsKey(l.motivo), 'Motivo dell\'immersione non valido');
+      serve(motiviLdi.containsKey(l.motivo) && !(v1 && l.motivo == 'tec'), 'Motivo dell\'immersione non valido');
+      if (!v1 && l.motivo != 'acc') {
+        // v2: guidata (con la guida seguita) oppure organizzata (con i compagni)
+        serve(modalitaLdi.containsKey(l.modalita), 'Manca se l\'immersione è guidata o organizzata');
+        final con = l.compagni ?? const [];
+        serve(con.isNotEmpty && con.every((c) => c.trim().isNotEmpty),
+            l.modalita == 'gui' ? 'Manca la guida seguita' : 'Mancano i compagni di coppia o di terzetto');
+        if (l.modalita == 'gui') serve(con.length <= 1, 'In un\'immersione guidata si indica una sola guida');
+      }
       serve(autorespiratoriLdi.containsKey(l.autorespiratore), 'Autorespiratore non valido');
       serve(miscelaValida(l.miscela), 'Miscela non valida (es. AIR, EAN32, TX21/35, O2)');
       if (l.note != null) {
@@ -473,6 +538,12 @@ LdiControllo controllaDocumento(LdiDocumento d, {DateTime? adesso}) {
       } else {
         serve(RegExp(r'^\d+/\d+$').hasMatch(r.pagina!), 'Pagina non valida (es. 1/2)');
         serve(r.numeroPartecipanti >= r.partecipanti.length, 'Il numero dei partecipanti è minore dell\'elenco');
+      }
+      if (!v1) {
+        serve((r.responsabile?.nome.trim() ?? '').isNotEmpty, 'Manca il responsabile dell\'uscita');
+        if (r.primoSoccorso != null) {
+          serve(r.primoSoccorso!.nome.trim().isNotEmpty, 'Manca il nome del responsabile del primo soccorso');
+        }
       }
   }
   return LdiControllo(err, avv);

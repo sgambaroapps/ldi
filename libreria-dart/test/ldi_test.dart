@@ -31,6 +31,7 @@ LdiLibretto libretto(
         String? sostituisce,
         String? annullamento}) =>
     LdiLibretto(
+      versione: 1, // i test qui sotto sono quelli della v1, che resta leggibile
       id: 'bG9nYm9vazAwMDE1',
       idImmersione: 'Qm9wZ3Rx2kLc8sVw',
       emesso: '2026-11-18T12:41+01:00',
@@ -233,6 +234,7 @@ void main() {
   group('Riepilogo immersione', () {
     test('emissione e lettura', () async {
       final r = LdiRiepilogo(
+        versione: 1,
         idImmersione: 'Qm9wZ3Rx2kLc8sVw',
         emesso: '2026-11-18T12:45+01:00',
         emittente: emittente,
@@ -253,6 +255,112 @@ void main() {
       expect((l.documento as LdiRiepilogo).partecipanti.length, 12);
       // ignore: avoid_print
       print('Lunghezza del QR di riepilogo (12 partecipanti): ${qr.length} caratteri');
+    });
+  });
+
+  group('Versione 2 dei dati (23/11/2026)', () {
+    LdiLibretto v2({String motivo = 'ric', String? modalita = 'org', List<String>? compagni = const ['Anna Verdi'],
+            List<LdiGuida> guide = const []}) =>
+        LdiLibretto(
+          id: 'bG9nYm9vazAwMDE2',
+          idImmersione: 'Qm9wZ3Rx2kLc8sVw',
+          emesso: '2026-11-23T12:41+01:00',
+          emittente: emittente,
+          inizio: '2026-11-23T09:35+01:00',
+          fine: '2026-11-23T10:22+01:00',
+          luogo: luogo,
+          guide: guide,
+          profonditaPianificata: 18,
+          profonditaRaggiunta: 17.6,
+          partecipante: const LdiPartecipante(
+              nome: 'Mario Rossi', dataNascita: '1978-04-12', brevetto: 'Open Water Diver', ente: 'SSI', numeroBrevetto: 'S-1'),
+          motivo: motivo,
+          modalita: modalita,
+          compagni: compagni,
+          autorespiratore: 'OC-MONO',
+          miscela: 'AIR',
+        );
+
+    test('libretto organizzato, senza guide e senza responsabile: valido; v=2 nel JSON', () async {
+      final k = await LdiChiave.genera();
+      final l = await leggiLdi(await emettiLdi(v2(), k), adesso: adesso);
+      expect(l.esito, LdiEsito.firmaValida, reason: '${l.motivo} ${l.dettagli}');
+      final d = l.documento as LdiLibretto;
+      expect([d.versione, d.modalita, d.compagni, d.guide], [2, 'org', ['Anna Verdi'], isEmpty]);
+      expect(d.toJson()['v'], 2);
+      expect(d.toJson().containsKey('ru'), isFalse);
+    });
+
+    test('guidata con la guida seguita; terzetto organizzato; tecnica', () async {
+      final k = await LdiChiave.genera();
+      const g = [LdiGuida(nome: 'Laura Verdi', qualifica: 'Guida', ente: 'PADI')];
+      for (final d in [
+        v2(modalita: 'gui', compagni: ['Laura Verdi'], guide: g),
+        v2(compagni: ['Anna Verdi', 'Luca Neri']),
+        v2(motivo: 'tec'),
+        v2(motivo: 'acc', modalita: null, compagni: null, guide: g), // la guida che accompagna
+      ]) {
+        final l = await leggiLdi(await emettiLdi(d, k), adesso: adesso);
+        expect(l.esito, LdiEsito.firmaValida, reason: '${d.toJson()} ${l.dettagli}');
+      }
+    });
+
+    test('regole della v2: mod e con obbligatori, una sola guida seguita', () async {
+      final k = await LdiChiave.genera();
+      for (final d in [
+        v2(modalita: null),
+        v2(compagni: null),
+        v2(compagni: const []),
+        v2(modalita: 'xyz'),
+        v2(modalita: 'gui', compagni: ['A', 'B']),
+      ]) {
+        expect(() => emettiLdi(d, k), throwsA(isA<LdiErroreEmissione>()), reason: '${d.toJson()}');
+      }
+    });
+
+    test('la v1 resta com\'era: «tecnica» e guide vuote non valgono', () async {
+      final k = await LdiChiave.genera();
+      expect(() => emettiLdi(LdiLibretto.fromJson({...libretto().toJson(), 'mot': 'tec'}), k),
+          throwsA(isA<LdiErroreEmissione>()));
+      expect(() => emettiLdi(LdiLibretto.fromJson({...libretto().toJson(), 'g': []}), k),
+          throwsA(isA<LdiErroreEmissione>()));
+      expect((await leggiLdi(await emettiLdi(libretto(), k), adesso: adesso)).esito, LdiEsito.firmaValida);
+    });
+
+    test('riepilogo v2: responsabile dell\'uscita obbligatorio, primo soccorso con il telefono', () async {
+      final k = await LdiChiave.genera();
+      LdiRiepilogo r({LdiContatto? ru, LdiContatto? ps}) => LdiRiepilogo(
+            idImmersione: 'Qm9wZ3Rx2kLc8sVw',
+            emesso: '2026-11-23T12:45+01:00',
+            emittente: emittente,
+            inizio: '2026-11-23T09:35+01:00',
+            fine: '2026-11-23T10:22+01:00',
+            luogo: luogo,
+            guide: const [],
+            profonditaPianificata: 18,
+            profonditaRaggiunta: 17.6,
+            partecipanti: [LdiVoceRiepilogo(nome: 'Mario Rossi', idLibretto: nuovoIdLdi())],
+            numeroPartecipanti: 1,
+            responsabile: ru,
+            primoSoccorso: ps,
+          );
+      expect(() => emettiLdi(r(), k), throwsA(isA<LdiErroreEmissione>()));
+      const luca = LdiContatto(nome: 'Luca Neri', telefono: '333 1234567');
+      final l = await leggiLdi(await emettiLdi(r(ru: luca, ps: luca), k), adesso: adesso);
+      expect(l.esito, LdiEsito.firmaValida, reason: '${l.motivo} ${l.dettagli}');
+      final d = l.documento as LdiRiepilogo;
+      expect([d.responsabile!.nome, d.primoSoccorso!.telefono], ['Luca Neri', '333 1234567']);
+    });
+
+    test('v = 3 (futura): «versione più recente»', () async {
+      // firmato davvero, come farebbe un programma più nuovo
+      final k = await LdiChiave.genera();
+      final dati = utf8.encode(jsonEncode({...v2().toJson(), 'v': 3}));
+      final firma = await k.firma([...utf8.encode('LDI1'), ...dati]);
+      final pacchetto = Uint8List.fromList([1, ...k.pubblica, ...firma, ...dati]);
+      final v3 = prefissoLdi + base45Codifica(const ZLibEncoder().encodeBytes(pacchetto, level: 9));
+      final l = await leggiLdi(v3);
+      expect(l.motivo, contains('versione più recente'));
     });
   });
 

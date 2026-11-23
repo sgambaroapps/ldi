@@ -1,4 +1,4 @@
-// Lettura e verifica di un QR LDI (Libretto Digitale Immersioni), specifica bozza 5, paragrafo 7.
+// Lettura e verifica di un QR LDI (Libretto Digitale Immersioni), specifica v2 (legge anche la v1), paragrafo 7.
 // Porta in JavaScript della libreria di riferimento in Dart (packages/ldi di «Nautilus - Registro Immersioni"):
 // stessi controlli, stessi esiti, stessi motivi. Tutto avviene nel browser: nessun dato esce dal dispositivo.
 //
@@ -8,7 +8,7 @@ import { verifyAsync } from './lib/ed25519.js';
 
 export const PREFISSO = 'LDI1:';
 const VERSIONE_PACCHETTO = 1;
-const VERSIONE_DATI = 1;
+const VERSIONE_DATI = 2; // legge la 1 e la 2 (specifica 4.9)
 const MAX_CARATTERI_QR = 7000;
 const MAX_BYTE_DECOMPRESSI = 16 * 1024;
 const MAX_NOTE = 100;
@@ -30,7 +30,8 @@ export const MOTIVO = {
 export const AVVISO = { ORARI: 'orari', FUTURO: 'futuro', PROFONDITA: 'profondita' };
 
 export const AUTORESPIRATORI = ['OC-MONO', 'OC-BI', 'OC-SM', 'CCR', 'SCR', 'ALTRO'];
-export const MOTIVI = ['ric', 'cor', 'soc', 'pro', 'acc', 'alt'];
+export const MOTIVI = ['ric', 'cor', 'tec', 'soc', 'pro', 'acc', 'alt']; // 'tec' solo v2
+export const MODALITA = ['gui', 'org']; // solo v2: guidata, organizzata
 
 // ---------------------------------------------------------------- codifiche
 
@@ -172,6 +173,8 @@ export function controllaDocumento(d, adesso = Date.now()) {
   const err = [], avv = [];
   const serve = (ok, msg) => { if (!ok) err.push(msg); };
 
+  serve(d.v === 1 || d.v === 2, 'Versione dei dati non valida');
+  const v1 = d.v === 1;
   serve(RE_ID.test(testo(d.imm)), "Codice dell'immersione non valido");
   const em = leggiDataOra(d.em), ini = leggiDataOra(d.ini), fin = leggiDataOra(d.fin);
   serve(em !== null, 'Data di emissione mancante o non valida');
@@ -191,9 +194,12 @@ export function controllaDocumento(d, adesso = Date.now()) {
   }
 
   const g = d.g;
-  serve(g.length > 0, 'Serve almeno una guida o un istruttore');
   serve(g.every((x) => pieno(x.n)), 'Una guida o un istruttore non ha il nome');
-  serve(g.filter((x) => x.r === 1).length === 1, "Deve esserci un solo responsabile dell'immersione");
+  if (v1) {
+    // v1: almeno una guida e un solo responsabile dentro "g"
+    serve(g.length > 0, 'Serve almeno una guida o un istruttore');
+    serve(g.filter((x) => x.r === 1).length === 1, "Deve esserci un solo responsabile dell'immersione");
+  }
 
   const pp = numero(d.pp, -1), pr = numero(d.pr, -1);
   serve(pp > 0, 'Profondità pianificata mancante');
@@ -219,7 +225,14 @@ export function controllaDocumento(d, adesso = Date.now()) {
       serve(d.ann.trim() !== '', "Manca il motivo dell'annullamento");
       serve(lunghezza(d.ann) <= MAX_NOTE, "Motivo dell'annullamento troppo lungo");
     }
-    serve(MOTIVI.includes(d.mot), "Motivo dell'immersione non valido");
+    serve(MOTIVI.includes(d.mot) && !(v1 && d.mot === 'tec'), "Motivo dell'immersione non valido");
+    if (!v1 && d.mot !== 'acc') {
+      // v2: guidata (con la guida seguita) oppure organizzata (con i compagni)
+      serve(MODALITA.includes(d.mod), "Manca se l'immersione è guidata o organizzata");
+      const con = Array.isArray(d.con) ? d.con : [];
+      serve(con.length > 0 && con.every(pieno), d.mod === 'gui' ? 'Manca la guida seguita' : 'Mancano i compagni di coppia o di terzetto');
+      if (d.mod === 'gui') serve(con.length <= 1, "In un'immersione guidata si indica una sola guida");
+    }
     serve(AUTORESPIRATORI.includes(d.ar), 'Autorespiratore non valido');
     serve(miscelaValida(d.mx), 'Miscela non valida');
     if (typeof d.note === 'string') serve(lunghezza(d.note) <= MAX_NOTE, 'Note troppo lunghe');
@@ -233,6 +246,10 @@ export function controllaDocumento(d, adesso = Date.now()) {
     } else {
       serve(/^\d+\/\d+$/.test(d.pag), 'Pagina non valida (es. 1/2)');
       serve(np >= p.length, "Il numero dei partecipanti è minore dell'elenco");
+    }
+    if (!v1) {
+      serve(d.ru !== null && typeof d.ru === 'object' && pieno(d.ru.n), "Manca il responsabile dell'uscita");
+      if (d.ps != null) serve(typeof d.ps === 'object' && pieno(d.ps.n), 'Manca il nome del responsabile del primo soccorso');
     }
   }
   return { errori: err, avvisi: avv };

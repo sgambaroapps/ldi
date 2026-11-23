@@ -6,7 +6,7 @@ digitale (Ed25519), così chiunque può leggerli e controllare che non siano sta
 
 - **Verifica un libretto:** https://sgambaroapps.github.io/ldi/ (fotocamera, foto o PDF; sei lingue; tutto nel browser,
   niente viene inviato).
-- **Specifica:** [`SPECIFICA.md`](SPECIFICA.md) — versione 1 definitiva (22/11/2026), prefisso `LDI1:`.
+- **Specifica:** [`SPECIFICA.md`](SPECIFICA.md) — dati versione 2 (23/11/2026; la versione 1 del 22/11/2026 resta leggibile), prefisso `LDI1:`.
 - **Libreria di riferimento in Dart:** [`libreria-dart/`](libreria-dart/) — crea, firma, legge e verifica i QR.
 - **Kit di prova:** [`libreria-dart/esempi/kit-di-prova/`](libreria-dart/esempi/kit-di-prova/) — 12 QR di esempio con
   dati inventati e chiavi dimostrative, ognuno con l'esito atteso (`esiti.json`), per provare un verificatore.

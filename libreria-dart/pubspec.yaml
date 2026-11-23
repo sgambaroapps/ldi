@@ -1,6 +1,6 @@
 name: ldi
 description: "LDI – Libretto Digitale Immersioni: crea, firma, legge e verifica i QR code dei libretti delle immersioni (libreria di riferimento)."
-version: 1.0.0
+version: 2.0.0
 publish_to: none
 repository: https://github.com/sgambaroapps/ldi
 

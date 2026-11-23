@@ -197,6 +197,8 @@ function disegnaDati(d) {
     [T('pr'), metri(d.pr)],
     [T('motivo'), tipo],
     [T('corso'), piena(d.cor) ? d.cor : null],
+    [T('modalita'), d.t === 'lib' && piena(d.mod) ? T('modalitaV.' + d.mod) : null],
+    [T(d.mod === 'gui' ? 'conGuida' : 'conCompagni'), d.t === 'lib' && Array.isArray(d.con) ? d.con.join(', ') : null],
     [T('emesso'), dataOraCompleta(d.em)],
   ]));
 
@@ -218,8 +220,14 @@ function disegnaDati(d) {
       el('p', { style: 'margin-top:8px' }, `${T('totale')}: ${d.np}`)));
   }
 
+  // v2: il riepilogo porta il responsabile dell'uscita e quello del primo soccorso
+  const persona = (x) => (x && typeof x === 'object' && piena(x.n) ? [x.n, x.tel].filter(piena).join(' · ') : null);
+  if (d.t === 'reg' && (persona(d.ru) || persona(d.ps))) {
+    griglia.append(riquadro(T('rResponsabili'), [[T('ru'), persona(d.ru)], [T('ps'), persona(d.ps)]]));
+  }
+
   griglia.append(el('div', { class: 'riquadro' }, el('h3', {}, T('rGuide')),
-    el('ul', {}, d.g.map((g) => {
+    d.g.length === 0 ? el('p', {}, T('nessunaGuida')) : el('ul', {}, d.g.map((g) => {
       const qual = [g.br, g.e].filter(piena).join(' · ');
       return el('li', { class: g.r === 1 ? 'resp' : null }, g.n, qual ? ` — ${qual}` : '',
         g.r === 1 ? el('span', { class: 'etic' }, T('responsabile')) : null);
