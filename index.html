@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verifica libretto immersioni (LDI)</title>
+<meta name="description" content="Verifica il QR code di un libretto delle immersioni LDI: firma, dati e codice di controllo del diving. Tutto nel browser, nessun dato inviato.">
+<meta name="robots" content="index,follow">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="assets/icona.png">
+<style>
+:root{
+  --fondo:#ffffff; --testo:#14212b; --tenue:#5a6a76;
+  --blu:#0b3c5d; --azzurro:#1b7aa6; --chiaro:#eef6fb; --bordo:#dbe6ee;
+  --scheda:#ffffff; --ombra:0 1px 2px rgba(11,60,93,.06), 0 8px 24px rgba(11,60,93,.07);
+  --verde:#1e7e34; --verde-fondo:#e8f5ec; --giallo:#8a5a00; --giallo-fondo:#fff4d6; --giallo-bordo:#f2b705;
+  --rosso:#b3261e; --rosso-fondo:#fdecea;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --fondo:#0f171e; --testo:#e7eef3; --tenue:#9db0be;
+    --blu:#8fc7e0; --azzurro:#5fb0d4; --chiaro:#16242e; --bordo:#263a48;
+    --scheda:#141f28; --ombra:0 1px 2px rgba(0,0,0,.3), 0 10px 26px rgba(0,0,0,.35);
+    --verde:#7fd492; --verde-fondo:#13281b; --giallo:#ffd36b; --giallo-fondo:#2c2410; --giallo-bordo:#c99400;
+    --rosso:#ff8a80; --rosso-fondo:#2d1614;
+  }
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+body{
+  margin:0; background:var(--fondo); color:var(--testo);
+  font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-text-size-adjust:100%;
+}
+img{max-width:100%; display:block}
+a{color:var(--azzurro)}
+button,textarea{font:inherit}
+
+/* ---- barra in alto (come il sito di Nautilus DiveKit) ---- */
+.top{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
+  max-width:880px; margin:0 auto; padding:14px 20px}
+/* il nome può andare su due righe: così in tutte le lingue (anche spagnolo e francese, più lunghi)
+   le lingue restano a destra; sul telefono vanno sotto, come sul sito di DiveKit */
+.brand{display:flex; align-items:center; gap:11px; min-width:0; flex:1 1 240px}
+.brand img{width:40px; height:40px; border-radius:10px; flex:none}
+.brand b{display:block; font-size:1.02rem; letter-spacing:.2px; line-height:1.2}
+.brand span{display:block; font-size:.8rem; color:var(--tenue)}
+nav#lingue{display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end; flex:0 1 auto}
+nav#lingue button{
+  font-size:.82rem; padding:5px 12px; border-radius:999px; cursor:pointer;
+  border:1px solid var(--bordo); color:var(--tenue); background:transparent;
+}
+nav#lingue button:hover{border-color:var(--azzurro); color:var(--azzurro)}
+nav#lingue button[aria-pressed="true"]{background:var(--azzurro); border-color:var(--azzurro); color:#fff; font-weight:600}
+
+.wrap{max-width:880px; margin:0 auto; padding:0 20px 10px}
+
+/* ---- apertura ---- */
+.hero{
+  position:relative; overflow:hidden; color:#fff; border-radius:22px;
+  background:linear-gradient(135deg,#0a2a47 0%,#12507d 52%,#2b86ad 100%);
+  padding:40px 26px 34px; text-align:center;
+}
+.hero::after{content:""; position:absolute; inset:-40% -10% auto; height:130%;
+  background:radial-gradient(60% 55% at 50% 0%, rgba(255,255,255,.22), transparent 70%); pointer-events:none}
+.hero>*{position:relative; z-index:1}
+.hero h1{margin:0 auto 12px; font-size:1.95rem; line-height:1.2; max-width:18em; letter-spacing:-.4px}
+.hero p.sub{margin:0 auto; max-width:38em; font-size:1.04rem; color:#dcecf6}
+.azioni{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin:24px 0 0}
+.azioni button{
+  display:inline-flex; align-items:center; gap:9px; min-height:48px; padding:0 18px; border-radius:12px;
+  cursor:pointer; font-weight:600; font-size:.95rem;
+  background:#fff; color:#0a2a47; border:1px solid rgba(255,255,255,.6);
+}
+.azioni button.secondario{background:rgba(255,255,255,.12); color:#fff; border-color:rgba(255,255,255,.45)}
+.azioni button:hover{filter:brightness(.96)}
+.azioni svg{flex:none}
+.privacy{display:flex; gap:8px; align-items:flex-start; justify-content:center; margin:18px auto 0;
+  max-width:36em; font-size:.88rem; color:#e9f5fc}
+.privacy svg{flex:none; margin-top:3px}
+
+/* ---- fotocamera e incolla ---- */
+.pannello{margin-top:18px; background:var(--scheda); border:1px solid var(--bordo); border-radius:16px;
+  padding:16px; box-shadow:var(--ombra)}
+.video{position:relative; max-width:480px; margin:0 auto; border-radius:12px; overflow:hidden; background:#000}
+.video video{display:block; width:100%; height:auto}
+.video::after{content:""; position:absolute; inset:16%; border:3px solid rgba(255,255,255,.85);
+  border-radius:14px; box-shadow:0 0 0 999px rgba(0,0,0,.25)}
+.pannello p{margin:10px 0 0; text-align:center; color:var(--tenue); font-size:.9rem}
+.pannello .riga{display:flex; justify-content:center; margin-top:12px}
+.pulsante{min-height:44px; padding:0 18px; border-radius:11px; cursor:pointer; font-weight:600;
+  background:var(--azzurro); color:#fff; border:1px solid var(--azzurro)}
+.pulsante.leggero{background:transparent; color:var(--azzurro)}
+textarea{width:100%; min-height:110px; padding:10px 12px; border-radius:10px; border:1px solid var(--bordo);
+  background:var(--fondo); color:var(--testo); font-family:ui-monospace,Consolas,monospace; font-size:.85rem; resize:vertical}
+
+.stato{margin:18px 0 0; padding:12px 14px; border-radius:12px; background:var(--chiaro);
+  border:1px solid var(--bordo); color:var(--testo); font-size:.95rem}
+.stato.errore{background:var(--rosso-fondo); border-color:var(--rosso); color:var(--rosso)}
+
+/* ---- esiti ---- */
+#esiti{margin-top:22px; display:grid; gap:22px}
+.esito{border-radius:18px; overflow:hidden; border:2px solid var(--bordo); background:var(--scheda); box-shadow:var(--ombra)}
+.esito .numero{font-size:.82rem; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:var(--tenue);
+  padding:12px 18px 0}
+.testata{display:flex; gap:14px; align-items:flex-start; padding:16px 18px 18px}
+.testata .bollo{flex:none; width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff}
+.testata h2{margin:0 0 4px; font-size:1.35rem; line-height:1.25}
+.testata p{margin:0}
+.esito.verde{border-color:var(--verde)} .esito.verde .testata{background:var(--verde-fondo)}
+.esito.verde .bollo{background:var(--verde)} .esito.verde h2{color:var(--verde)}
+.esito.giallo{border-color:var(--giallo-bordo)} .esito.giallo .testata{background:var(--giallo-fondo)}
+.esito.giallo .bollo{background:var(--giallo-bordo)} .esito.giallo h2{color:var(--giallo)}
+.esito.rosso{border-color:var(--rosso)} .esito.rosso .testata{background:var(--rosso-fondo)}
+.esito.rosso .bollo{background:var(--rosso)} .esito.rosso h2{color:var(--rosso)}
+.motivo{margin-top:8px !important; font-weight:600}
+.corpo{padding:4px 18px 18px}
+.codice{margin:14px 0 0; padding:14px; border-radius:12px; background:var(--chiaro); border:1px solid var(--bordo)}
+.codice .etichetta{font-size:.88rem; color:var(--tenue)}
+.codice .valore{display:block; margin-top:2px; font:700 1.45rem/1.3 ui-monospace,Consolas,"Courier New",monospace;
+  letter-spacing:1.5px; color:var(--testo); word-break:break-all}
+.codice .nota{margin:10px 0 0; font-size:.88rem; line-height:1.5}
+.avvisi{margin:14px 0 0; padding:12px 14px; border-radius:12px; border:1px solid var(--giallo-bordo); background:var(--giallo-fondo)}
+.avvisi b{color:var(--giallo)}
+.avvisi ul{margin:4px 0 0; padding-left:20px}
+.sottotitolo{margin:20px 0 0; font-size:1rem; color:var(--tenue)}
+.riquadri{display:grid; gap:12px; margin-top:14px; grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))}
+.riquadro{border:1px solid var(--bordo); border-radius:14px; padding:14px 16px; background:var(--scheda)}
+.riquadro h3{margin:0 0 8px; font-size:.82rem; letter-spacing:.5px; text-transform:uppercase; color:var(--azzurro)}
+.riquadro dl{margin:0; display:grid; grid-template-columns:minmax(0,42%) minmax(0,1fr); gap:5px 12px; font-size:.93rem}
+.riquadro dt{color:var(--tenue)}
+.riquadro dd{margin:0; overflow-wrap:anywhere}
+.riquadro ul{margin:0; padding-left:18px; font-size:.93rem}
+.riquadro li{margin:2px 0}
+.riquadro .resp{font-weight:700}
+.riquadro .etic{display:inline-block; margin-left:6px; font-size:.75rem; padding:1px 8px; border-radius:999px;
+  background:var(--chiaro); border:1px solid var(--bordo); color:var(--azzurro); font-weight:600}
+.riquadro.largo{grid-column:1/-1}
+.riquadro p{margin:0; font-size:.93rem}
+details.tecnici{margin-top:14px; font-size:.82rem; color:var(--tenue)}
+details.tecnici summary{cursor:pointer}
+details.tecnici dl{display:grid; grid-template-columns:auto 1fr; gap:3px 12px; margin:8px 0 0}
+details.tecnici dd{margin:0; font-family:ui-monospace,Consolas,monospace; overflow-wrap:anywhere}
+.ancora{display:flex; justify-content:center; margin-top:4px}
+
+/* ---- in fondo ---- */
+.info{margin-top:44px; background:var(--chiaro); border:1px solid var(--bordo); border-radius:20px; padding:22px 22px}
+.info h2{margin:0 0 6px; font-size:1.15rem}
+.info p{margin:0; font-size:.93rem}
+footer{margin:30px 0 46px; padding-top:18px; border-top:1px solid var(--bordo); color:var(--tenue); font-size:.84rem}
+footer p{margin:0 0 8px; max-width:60em}
+
+@media (max-width:620px){
+  .hero{border-radius:18px; padding:32px 16px 28px}
+  .hero h1{font-size:1.5rem}
+  .azioni button{width:100%; justify-content:center}
+  .wrap,.top{padding-left:16px; padding-right:16px}
+  .riquadro dl{grid-template-columns:1fr; gap:0}
+  .riquadro dd{margin-bottom:6px}
+}
+@media print{
+  .top nav,.hero .azioni,.privacy,.pannello,.ancora,.info,footer{display:none !important}
+  .hero{background:none; color:#000; padding:0}
+  .hero p.sub{color:#000}
+}
+</style>
+<script src="lib/zxing-reader.js" defer></script>
+<script type="module" src="app.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><img src="assets/icona.png" alt="" width="40" height="40">
+    <div><b data-t="marchio">Verifica libretto immersioni</b><span data-t="claim">Libretto Digitale Immersioni · LDI</span></div></div>
+  <nav id="lingue" aria-label="Lingua / Language"></nav>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1 data-t="h1">Verifica il QR code di un libretto delle immersioni</h1>
+    <p class="sub" data-t="sub"></p>
+    <div class="azioni">
+      <button type="button" id="btnFotocamera">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M8 8h3v3H8zM13 8h3v3h-3zM8 13h3v3H8zM14 14h2v2"/></svg>
+        <span data-t="fotocamera"></span></button>
+      <button type="button" id="btnFile" class="secondario">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 18v-6M9.5 14.5 12 12l2.5 2.5"/></svg>
+        <span data-t="file"></span></button>
+      <button type="button" id="btnIncolla" class="secondario">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/></svg>
+        <span data-t="incolla"></span></button>
+      <input type="file" id="sceltaFile" accept="image/*,application/pdf,.pdf" hidden>
+    </div>
+    <p class="privacy"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span data-t="privacy"></span></p>
+  </section>
+
+  <div id="pannelloFotocamera" class="pannello" hidden>
+    <div class="video"><video id="video" playsinline muted></video></div>
+    <p data-t="inquadra"></p>
+    <div class="riga"><button type="button" class="pulsante leggero" id="btnChiudiFotocamera" data-t="fermaFotocamera"></button></div>
+  </div>
+
+  <div id="pannelloIncolla" class="pannello" hidden>
+    <label for="testoQr" class="sr" hidden>QR</label>
+    <textarea id="testoQr" spellcheck="false" autocomplete="off"></textarea>
+    <div class="riga"><button type="button" class="pulsante" id="btnVerificaTesto" data-t="verifica"></button></div>
+  </div>
+
+  <div id="stato" class="stato" role="status" aria-live="polite" hidden></div>
+  <div id="esiti" aria-live="polite"></div>
+  <div class="ancora" id="ancora" hidden><button type="button" class="pulsante leggero" id="btnAncora" data-t="nuovaVerifica"></button></div>
+
+  <section class="info">
+    <h2 data-t="cosE"></h2>
+    <p><span data-t="cosETesto"></span> <a href="https://sgambaroapps.github.io/nautilusdivekit/" data-t="linkDiveKit" rel="noopener"></a></p>
+  </section>
+
+  <footer>
+    <p data-t="disc"></p>
+    <p>LDI · <span id="annoCopy"></span> sgambaroapps</p>
+  </footer>
+</main>
+<noscript><p style="text-align:center;padding:20px">JavaScript is required / Serve JavaScript.</p></noscript>
+</body>
+</html>

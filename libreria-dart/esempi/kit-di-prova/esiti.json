@@ -1,0 +1,101 @@
+[
+  {
+    "file": "01-libretto",
+    "titolo": "Libretto di un corso",
+    "colore": "verde",
+    "pagina": "Firma valida + tutti i dati + codice di controllo EH7D-DX5B-KSRG-CYTL + NOTA.",
+    "divekit": "Si importa. Ricorda: «Diving di Esempio ASD» ha il codice EH7D-DX5B-KSRG-CYTL.",
+    "codice_di_controllo": "EH7D-DX5B-KSRG-CYTL"
+  },
+  {
+    "file": "02-libretto-prova",
+    "titolo": "Libretto di una prova / battesimo, senza brevetto",
+    "colore": "verde",
+    "pagina": "Firma valida; il sub non ha brevetto (non è un errore: è una prova). Tipo: «Prova / battesimo».",
+    "divekit": "Si importa.",
+    "codice_di_controllo": "EH7D-DX5B-KSRG-CYTL"
+  },
+  {
+    "file": "03-riepilogo",
+    "titolo": "Riepilogo dell'immersione (registro del diving, non personale)",
+    "colore": "verde",
+    "pagina": "Firma valida; mostra l'immersione e l'elenco dei 3 partecipanti.",
+    "divekit": "NON si importa (non è un libretto personale): spiegarlo al sub.",
+    "codice_di_controllo": "EH7D-DX5B-KSRG-CYTL"
+  },
+  {
+    "file": "04-correzione",
+    "titolo": "Correzione del libretto 01 (rev 2, sostituisce KITlibRossi00001)",
+    "colore": "verde",
+    "pagina": "Firma valida; dire che è la versione 2 e che sostituisce il libretto precedente.",
+    "divekit": "Se 01 è già importato: propone di AGGIORNARE quell'immersione (profondità 26,8 m). Se no: si importa.",
+    "codice_di_controllo": "EH7D-DX5B-KSRG-CYTL"
+  },
+  {
+    "file": "05-annullamento",
+    "titolo": "Annullamento del libretto 04",
+    "colore": "giallo",
+    "pagina": "ANNULLATO + motivo «Immersione registrata per errore» + i dati del libretto annullato.",
+    "divekit": "Se 04 (o 01) è importato: resta nel logbook segnato ANNULLATA con il motivo, fuori dalle statistiche. Se non è importato: non importa niente.",
+    "codice_di_controllo": "EH7D-DX5B-KSRG-CYTL"
+  },
+  {
+    "file": "06-annullamento-sconosciuto",
+    "titolo": "Annullamento di un libretto mai importato",
+    "colore": "giallo",
+    "pagina": "ANNULLATO + motivo «Il sub non si è immerso».",
+    "divekit": "Non importa niente (il libretto annullato non c'è nel logbook).",
+    "codice_di_controllo": "EH7D-DX5B-KSRG-CYTL"
+  },
+  {
+    "file": "07-alterato",
+    "titolo": "Libretto 01 con la profondità cambiata da 28,4 a 18,4 m senza rifare la firma",
+    "colore": "rosso",
+    "pagina": "NON VALIDO: la firma non corrisponde. Nessun dato.",
+    "divekit": "Non si importa.",
+    "motivo_libreria": "La firma non corrisponde: i dati sono stati modificati dopo l'emissione."
+  },
+  {
+    "file": "08-danneggiato",
+    "titolo": "Testo del libretto 01 tagliato a metà",
+    "colore": "rosso",
+    "pagina": "NON VALIDO: QR danneggiato. Nessun dato.",
+    "divekit": "Non si importa.",
+    "motivo_libreria": "Il QR è danneggiato o è stato modificato."
+  },
+  {
+    "file": "09-versione-futura",
+    "titolo": "Un QR di una versione futura dello standard (LDI2:)",
+    "colore": "rosso",
+    "pagina": "NON VALIDO con il motivo «versione più recente: aggiorna». Nessun dato.",
+    "divekit": "Non si importa; suggerire di aggiornare l'app.",
+    "motivo_libreria": "È un libretto LDI di una versione più recente: aggiorna il programma."
+  },
+  {
+    "file": "10-non-ldi",
+    "titolo": "Un QR qualsiasi (un indirizzo web)",
+    "colore": "rosso",
+    "pagina": "NON VALIDO: non è un libretto LDI.",
+    "divekit": "Non si importa.",
+    "motivo_libreria": "Questo QR non è un libretto delle immersioni LDI."
+  },
+  {
+    "file": "11-altra-chiave",
+    "titolo": "Stesso nome di diving, ma firmato con un'altra chiave",
+    "colore": "verde",
+    "pagina": "Firma valida, ma con il codice HH3R-HUFG-IQST-6BCS (diverso da 01): la NOTA serve proprio a questo.",
+    "divekit": "Se è già importato un libretto di «Diving di Esempio ASD» con EH7D-DX5B-KSRG-CYTL: AVVISA che il codice è diverso e chiede se importarlo lo stesso.",
+    "codice_di_controllo": "HH3R-HUFG-IQST-6BCS"
+  },
+  {
+    "file": "12-avviso-orari",
+    "titolo": "Libretto con l'ora di fine prima dell'inizio",
+    "colore": "verde",
+    "pagina": "Firma valida, più l'avviso «l'ora di fine è prima dell'inizio» (non lo rende non valido).",
+    "divekit": "Si importa, mostrando l'avviso.",
+    "avvisi_libreria": [
+      "L'orario di fine non è dopo quello di inizio"
+    ],
+    "codice_di_controllo": "EH7D-DX5B-KSRG-CYTL"
+  }
+]
