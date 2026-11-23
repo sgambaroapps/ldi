@@ -486,6 +486,9 @@ LdiControllo controllaDocumento(LdiDocumento d, {DateTime? adesso}) {
     serve(d.guide.isNotEmpty, 'Serve almeno una guida o un istruttore');
     final responsabili = d.guide.where((g) => g.responsabile).length;
     serve(responsabili == 1, 'Deve esserci un solo responsabile dell\'immersione');
+  } else {
+    // v2: il responsabile sta solo nel riepilogo ("ru"), mai tra le guide
+    serve(d.guide.every((g) => !g.responsabile), 'Nella versione 2 il responsabile non si segna tra le guide (r)');
   }
 
   serve(d.profonditaPianificata > 0, 'Profondità pianificata mancante');

@@ -168,7 +168,7 @@ più il campo `pag`: `"1/2"`, `"2/2"`).
 | | v1 (22/11/2026) | v2 (23/11/2026) |
 |---|---|---|
 | `v` | `1` | `2` |
-| `g` | almeno una guida, una con `r:1` | anche vuota; `r` non si usa |
+| `g` | almeno una guida, una con `r:1` | anche vuota; `r` **vietato** |
 | responsabile dell'immersione | `r:1` dentro `g`, anche nel libretto | solo nel riepilogo: `ru` |
 | responsabile del primo soccorso | — | solo nel riepilogo: `ps` |
 | `mot` | ric, cor, soc, pro, acc, alt | in più `tec` (tecnica) |

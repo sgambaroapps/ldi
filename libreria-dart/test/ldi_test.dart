@@ -345,6 +345,8 @@ void main() {
             primoSoccorso: ps,
           );
       expect(() => emettiLdi(r(), k), throwsA(isA<LdiErroreEmissione>()));
+      expect(() => emettiLdi(v2(guide: guide), k), throwsA(isA<LdiErroreEmissione>()),
+          reason: 'in v2 niente r:1 sulle guide');
       const luca = LdiContatto(nome: 'Luca Neri', telefono: '333 1234567');
       final l = await leggiLdi(await emettiLdi(r(ru: luca, ps: luca), k), adesso: adesso);
       expect(l.esito, LdiEsito.firmaValida, reason: '${l.motivo} ${l.dettagli}');

@@ -199,6 +199,9 @@ export function controllaDocumento(d, adesso = Date.now()) {
     // v1: almeno una guida e un solo responsabile dentro "g"
     serve(g.length > 0, 'Serve almeno una guida o un istruttore');
     serve(g.filter((x) => x.r === 1).length === 1, "Deve esserci un solo responsabile dell'immersione");
+  } else {
+    // v2: il responsabile sta solo nel riepilogo ("ru"), mai tra le guide
+    serve(g.every((x) => x.r === undefined), 'Nella versione 2 il responsabile non si segna tra le guide (r)');
   }
 
   const pp = numero(d.pp, -1), pr = numero(d.pr, -1);
